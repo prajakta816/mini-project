@@ -3,9 +3,10 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { ACTIVATION_TOKEN_SECRET } from "../config/env.js";
 import sendMail from "../middleware/sendMail.js";
+import TryCatch from "../middleware/TryCatch.js";
 
-export const register = async (req, res) => {
-  try {
+export const register = TryCatch(async (req, res) => {
+  
     const { name, email, password } = req.body;
 
     let user = await User.findOne({ email });
@@ -49,10 +50,36 @@ export const register = async (req, res) => {
         "Registration successful, please check your email to activate your account",
       activationToken,
     });
-  } catch (error) {
-    console.error(error);   // IMPORTANT FOR DEBUGGING
-    res.status(500).json({
-      message: error.message,
+});
+
+export const verifyUser = TryCatch(async (req, res) => {
+  const { otp , activationToken } = req.body;
+
+  const verify = jwt.verify(activationToken, ACTIVATION_TOKEN_SECRET);
+
+  //in activationToken we have user and otp, so we can get user and otp from activationToken
+  if(!verify){
+    return res.status(400).json({
+      message: "Invalid activation token or otp expired",
     });
   }
-};
+  
+  //if otp from request.body is not equal to otp from activationToken then return error
+  if(verify.otp!==otp){
+    return res.status(400).json({
+      message: "Invalid activation token or otp wrong",
+    });
+  }
+
+  //creating user 
+  await User.create({
+    name: verify.user.name,
+    email: verify.user.email,
+    password: verify.user.password, 
+  })
+  //then we will send response to client
+  res.json({
+    message:"user registered"
+  })
+
+});
