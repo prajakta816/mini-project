@@ -1,23 +1,38 @@
 import express from "express";
 import { PORT } from "./config/env.js";
 import connectDB from "./config/db.js";
-import userRoutes from "./Routes/user.js";
+import Razorpay from 'razorpay';
+import cors from "cors";
 import dotenv from "dotenv";
 dotenv.config();
 connectDB();
 
+export const instance = new Razorpay({
+    key_id: process.env.Razorpay_Key,
+    key_secret: process.env.Razorpay_Secret,
+
+});
+
+//importing routes
+import userRoutes from "./Routes/user.js";
+import courseRoutes from "./Routes/courses.js";
+import adminRoutes from "./Routes/admin.js";
+
 const app = express();
 app.use(express.json());
+app.use(cors());
 
+//using routes
 app.use("/api", userRoutes);
+app.use("/api", courseRoutes);
+app.use("/api", adminRoutes);
+
+app.use("/uploads",express.static("uploads"));
 
 
 app.get("/", (req, res) => {
     res.send("Backend server is running 🚀");
 });
-
-console.log("EMAIL_USER:", process.env.EMAIL_USER);
-console.log("EMAIL_PASS:", process.env.EMAIL_PASS);
 
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);

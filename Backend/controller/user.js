@@ -1,4 +1,4 @@
-import { User } from "../modules/user.js";
+import { User } from "../models/user.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { ACTIVATION_TOKEN_SECRET } from "../config/env.js";
@@ -82,4 +82,43 @@ export const verifyUser = TryCatch(async (req, res) => {
     message:"user registered"
   })
 
+});
+
+export const loginUser = TryCatch(async (req, res) => {
+  const { email, password } = req.body;
+
+  const user = await User.findOne({ email });
+  if (!user) {
+    return res.status(400).json({
+      message: "User not found",
+    });
+  } 
+
+  const matchPassword = await bcrypt.compare(password, user.password);
+  if (!matchPassword) {
+    return res.status(400).json({
+      message: "Invalid password",
+    });
+  }
+
+  const token =  jwt.sign(
+    {
+      id: user._id,
+    },
+    ACTIVATION_TOKEN_SECRET,
+    {
+      expiresIn: "30d",
+    }
+  );
+
+  res.json({
+    message:`Welcome back ${user.name}`,
+    token,
+    user,
+  })
+});
+
+export const myProfile = TryCatch(async (req, res) => {
+  const user = await User.findById(req.user._id)
+  res.json({user});
 });
